@@ -1,16 +1,4 @@
-(typeof navigator !== "undefined") && (function(root, factory) {
-    if (typeof define === "function" && define.amd) {
-        define(function() {
-            return factory(root);
-        });
-    } else if (typeof module === "object" && module.exports) {
-        module.exports = factory(root);
-    } else {
-        root.lottie = factory(root);
-        root.bodymovin = root.lottie;
-    }
-}((window || {}), function(window) {
-	// User agent is not known from PaintWorklet.
+// User agent is not known from PaintWorklet.
 var navigator = {userAgent: 'unknown'};
 var window = {
     requestAnimationFrame: function(fn) {},
@@ -121,5 +109,3 @@ export let lottiejs = (function(window) {
     var renderer = '';
     return lottiejs;
 })(window);
-return lottie;
-}));

@@ -628,7 +628,7 @@ function concatScripts(scripts, build) {
 function wrapScriptWithModule(code, build) {
 	return new Promise((resolve, reject)=>{
 		try {
-			let moduleFileName
+			let moduleFileName = 'module';
 			switch(build) {
 				case 'canvas_worker':
 					moduleFileName = 'module_worker';
@@ -636,8 +636,6 @@ function wrapScriptWithModule(code, build) {
 				case 'paintworklet':
 					moduleFileName = 'module_es';
 					break;
-				default:
-					moduleFileName = 'module';
 			}
 			let wrappedCode = fs.readFileSync(`${rootFolder}js/${moduleFileName}.js`, "utf8");
 			wrappedCode = wrappedCode.replace('/*<%= contents %>*/',code);
@@ -695,7 +693,9 @@ async function buildVersion(scripts, version) {
 	const code = await concatScripts(scripts, version.build)
 	const wrappedCode = await wrapScriptWithModule(code, version.build)
 	const processedCode = await version.process(wrappedCode)
-	const modularizedCode = await modularizeCode(processedCode)
+	const modularizedCode = version.build !== 'paintworklet'
+		? await modularizeCode(processedCode)
+		: processedCode
 	const saved = await save(modularizedCode, version.fileName)
 	return true
 }

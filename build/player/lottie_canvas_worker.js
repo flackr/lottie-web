@@ -5802,6 +5802,10 @@ BaseRenderer.prototype.checkLayers = function(num){
     this.checkPendingElements();
 };
 
+BaseRenderer.prototype.cssKeyframes = function() {
+    return null;
+}
+
 BaseRenderer.prototype.createItem = function(layer){
     switch(layer.ty){
         case 2:
@@ -6001,7 +6005,7 @@ SVGRenderer.prototype.createSolid = function (data) {
     return new ISolidElement(data,this.globalData,this);
 };
 
-SVGRenderer.prototype.configAnimation = function(animData){
+SVGRenderer.prototype.configAnimation = function(animData, cb){
     this.svgElement.setAttribute('xmlns','http://www.w3.org/2000/svg');
     if(this.renderConfig.viewBoxSize) {
         this.svgElement.setAttribute('viewBox',this.renderConfig.viewBoxSize);
@@ -6050,6 +6054,7 @@ SVGRenderer.prototype.configAnimation = function(animData){
     defs.appendChild(maskElement);
     this.layers = animData.layers;
     this.elements = createSizedArray(animData.layers.length);
+    cb();
 };
 
 
@@ -6313,7 +6318,13 @@ CanvasRenderer.prototype.restore = function(actionFlag){
     }
 };
 
-CanvasRenderer.prototype.configAnimation = function(animData){
+CanvasRenderer.prototype.updateContext = function(context) {
+    this.globalData.canvasContext = this.canvasContext = this.renderConfig.context = context;
+    this.updateContainerSize(false);
+    this.globalData._mdf = true;
+}
+
+CanvasRenderer.prototype.configAnimation = function(animData, cb){
     if(this.animationItem.wrapper){
         this.animationItem.container = createTag('canvas');
         this.animationItem.container.style.width = '100%';
@@ -6351,9 +6362,10 @@ CanvasRenderer.prototype.configAnimation = function(animData){
     this.elements = createSizedArray(animData.layers.length);
 
     this.updateContainerSize();
+    cb();
 };
 
-CanvasRenderer.prototype.updateContainerSize = function () {
+CanvasRenderer.prototype.updateContainerSize = function (redraw) {
     this.reset();
     var elementWidth,elementHeight;
     if(this.animationItem.wrapper && this.animationItem.container){
@@ -6421,7 +6433,8 @@ CanvasRenderer.prototype.updateContainerSize = function () {
     this.canvasContext.closePath();
     this.canvasContext.clip();
 
-    this.renderFrame(this.renderedFrame, true);
+    if (redraw)
+        this.renderFrame(this.renderedFrame, true);
 };
 
 CanvasRenderer.prototype.destroy = function () {
@@ -6548,6 +6561,150 @@ CanvasRenderer.prototype.configAnimation = function(animData){
     this.elements = createSizedArray(animData.layers.length);
 
     this.updateContainerSize();
+};
+
+function determinePaintWorkletScriptPath(currentScript) {
+    function resolveRelative(path, relative) {
+        var abspath = path.substring(0, path.lastIndexOf('/')).split('/');
+        while (relative.startsWith('../')) {
+            abspath.pop();
+            relative = relative.substring(3);
+        }
+        return abspath.join('/') + '/' + relative;
+    }
+    if (currentScript.endsWith('/PaintWorkletRenderer.js'))
+        return resolveRelative(currentScript, '../../../build/player/lottie_paintworklet.js');
+    var m = currentScript.match(/(^.*lottie)(_[^.])?(\.min)?\.js$/);
+    if (!m)
+        return '';
+    return m[1] + '_paintworklet.js';
+}
+var LOTTIE_SCRIPT_SRC = determinePaintWorkletScriptPath(document.currentScript.src);
+var PAINT_WORKLET_RENDERER_NUM = 1;
+var registerProperty = CSS && CSS.registerProperty;
+if (registerProperty)
+    registerProperty({name: '--progress', 'syntax': '<number>', inherits: false, initialValue: 0});
+
+function PaintWorkletRenderer(animationItem, config){
+    this.animationItem = animationItem;
+    this.renderConfig = {
+        clearCanvas: (config && config.clearCanvas !== undefined) ? config.clearCanvas : true,
+        progressiveLoad: (config && config.progressiveLoad) || false,
+        preserveAspectRatio: (config && config.preserveAspectRatio) || 'xMidYMid meet',
+        imagePreserveAspectRatio: (config && config.imagePreserveAspectRatio) || 'xMidYMid slice',
+        className: (config && config.className) || ''
+    };
+    this.renderConfig.dpr = (config && config.dpr) || 1;
+    if (this.animationItem.wrapper) {
+        this.renderConfig.dpr = (config && config.dpr) || window.devicePixelRatio || 1;
+    }
+    this.globalData = {
+        frameNum: -1,
+        _mdf: false,
+        renderConfig: this.renderConfig,
+    };
+    this.completeLayers = false;
+    this.rendererType = 'canvas';
+}
+extendPrototype([BaseRenderer],PaintWorkletRenderer);
+
+PaintWorkletRenderer.prototype.cssKeyframes = function() {
+    return registerProperty ?
+        [{'--progress': 0}, {'--progress': 1}] :
+        [{'objectPosition': '0%'}, {'objectPosition': '1%'}];
+}
+
+PaintWorkletRenderer.prototype.createShape = function (data) {
+    return new CVShapeElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createText = function (data) {
+    return new CVTextElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createImage = function (data) {
+    return new CVImageElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createComp = function (data) {
+    return new CVCompElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createSolid = function (data) {
+    return new CVSolidElement(data, this.globalData, this);
+};
+
+PaintWorkletRenderer.prototype.createNull = SVGRenderer.prototype.createNull;
+
+PaintWorkletRenderer.prototype.configAnimation = function(animData, cb){
+    if(!this.animationItem.wrapper){
+        throw new Exception('Wrapper element required for paintworklet renderer.')
+    }
+    if(this.renderConfig.className) {
+        this.animationItem.wrapper.setAttribute('class', this.renderConfig.className);
+    }
+    this.data = animData;
+    this.layers = animData.layers;
+    this.setupGlobalData(animData, document.body);
+    // TODO: Create paintworklet.
+    var painterName = 'lottie-pw-' + PAINT_WORKLET_RENDERER_NUM++;
+    var animationProperty = registerProperty ? '--progress' : 'object-position';
+    var painterScript =
+        "import { lottiejs } from '" + LOTTIE_SCRIPT_SRC + "';\n" +
+        "var animData = " + JSON.stringify(animData) + ";\n" +
+        "registerPaint('" + painterName + "', class {\n" +
+        "   static get inputProperties() { return ['" + animationProperty + "']; }\n" +
+        "   constructor() {\n" +
+        "       this.animation = null;\n" +
+        "   }\n" +
+        "   paint(ctx, size, styleMap) {\n" +
+        "       ctx.canvas = {width: size.width, height: size.height};\n" +
+        "       if (!this.animation)\n" +
+        "           this.animation = lottiejs.loadAnimation({animationData: animData, renderer: 'canvas', rendererSettings: {context: ctx, clearCanvas: false}});\n" +
+        "       let progress = parseFloat(styleMap.get('" + animationProperty + "').toString());\n" +
+        "       this.animation.renderer.updateContext(ctx);\n" +
+        "       this.animation.setCurrentRawFrameValue(progress * this.animation.totalFrames);\n" +
+        "   }\n" +
+        "});";
+    var blob = new Blob([painterScript], {type: 'text/javascript'});
+    var element = this.animationItem.wrapper;
+    var url = URL.createObjectURL(blob);
+    CSS.paintWorklet.addModule(url).then(function() {
+        element.style.backgroundImage = 'paint(' + painterName + ')';
+        cb();
+    }).catch(function(err) {
+        console.error('Error loading paintworklet', err);
+    }).finally(function() {
+        URL.revokeObjectURL(url);
+    });
+};
+
+PaintWorkletRenderer.prototype.updateContainerSize = function () {};
+
+PaintWorkletRenderer.prototype.destroy = function () {
+    this.destroyed = true;
+};
+
+PaintWorkletRenderer.prototype.renderFrame = function(num, forceRender){
+    if (registerProperty)
+        this.animationItem.wrapper.style.setProperty('--progress', num / this.animationItem.totalFrames);
+    else
+        this.animationItem.wrapper.style.setProperty('object-position', (num / this.animationItem.totalFrames) + '%');
+};
+
+PaintWorkletRenderer.prototype.buildItem = function(pos){
+};
+
+PaintWorkletRenderer.prototype.createItem = function(pos){
+};
+
+PaintWorkletRenderer.prototype.checkPendingElements  = function(){
+};
+
+PaintWorkletRenderer.prototype.hide = function(){
+};
+
+PaintWorkletRenderer.prototype.show = function(){
 };
 
 function MaskElement(data,element,globalData) {
@@ -8123,6 +8280,7 @@ CVBaseElement.prototype = {
         }
     },
     renderFrame: function() {
+        this.canvasContext = this.globalData.canvasContext;
         if (this.hidden || this.data.hd) {
             return;
         }
@@ -9147,6 +9305,7 @@ var AnimationItem = function () {
     this._cbs = [];
     this.name = '';
     this.path = '';
+    this.animation = null;
     this.isLoaded = false;
     this.currentFrame = 0;
     this.currentRawFrame = 0;
@@ -9163,6 +9322,7 @@ var AnimationItem = function () {
     this.autoplay = false;
     this.loop = true;
     this.renderer = null;
+    this.rendererLoaded = false;
     this.animationID = createElementID();
     this.assetsPath = '';
     this.timeCompleted = 0;
@@ -9185,6 +9345,11 @@ AnimationItem.prototype.setParams = function(params) {
     switch(animType){
         case 'canvas':
             this.renderer = new CanvasRenderer(this, params.rendererSettings);
+            break;
+        case 'paintworklet':
+            // TODO: Implicitly use paintworklet renderer for 'canvas' type when
+            // all required features are supported.
+            this.renderer = new PaintWorkletRenderer(this, params.rendererSettings);
             break;
         case 'svg':
             this.renderer = new SVGRenderer(this, params.rendererSettings);
@@ -9368,6 +9533,11 @@ AnimationItem.prototype.configAnimation = function (animData) {
     }
 };
 
+AnimationItem.prototype.onRendererLoaded = function() {
+    this.rendererLoaded = true;
+    this.checkLoaded()
+}
+
 AnimationItem.prototype.waitForFontsLoaded = function(){
     if(!this.renderer) {
         return;
@@ -9375,7 +9545,7 @@ AnimationItem.prototype.waitForFontsLoaded = function(){
     if(this.renderer.globalData.fontManager.isLoaded){
         this.checkLoaded();
     }else{
-        setTimeout(this.waitForFontsLoaded.bind(this),20);
+        window.setTimeout(this.waitForFontsLoaded.bind(this),20);
     }
 }
 
@@ -9390,7 +9560,7 @@ AnimationItem.prototype.checkLoaded = function () {
             expressionsPlugin.initExpressions(this);
         }
         this.renderer.initItems();
-        setTimeout(function() {
+        window.setTimeout(function() {
             this.trigger('DOMLoaded');
         }.bind(this), 0);
         this.gotoFrame();
@@ -9401,7 +9571,7 @@ AnimationItem.prototype.checkLoaded = function () {
 };
 
 AnimationItem.prototype.resize = function () {
-    this.renderer.updateContainerSize();
+    this.renderer.updateContainerSize(true);
 };
 
 AnimationItem.prototype.setSubframe = function(flag){
@@ -9414,8 +9584,12 @@ AnimationItem.prototype.gotoFrame = function () {
     if(this.timeCompleted !== this.totalFrames && this.currentFrame > this.timeCompleted){
         this.currentFrame = this.timeCompleted;
     }
-    this.trigger('enterFrame');
-    this.renderFrame();
+    if (this.animation) {
+        this.animation.currentTime = this.currentFrame / this.totalFrames * this.getDuration() * 1000;
+    } else {
+        this.trigger('enterFrame');
+        this.renderFrame();
+    }
 };
 
 AnimationItem.prototype.renderFrame = function () {
@@ -9437,7 +9611,15 @@ AnimationItem.prototype.play = function (name) {
         this.isPaused = false;
         if(this._idle){
             this._idle = false;
-            this.trigger('_active');
+            var keyframes = this.renderer.cssKeyframes();
+            if (!keyframes) {
+                this.trigger('_active');
+            } else {
+                this.animation = this.wrapper.animate(keyframes, {
+                    duration: this.getDuration() * 1000,
+                    iterations: this.loop ? Infinity : 1,
+                });
+            }
         }
     }
 };
@@ -9449,7 +9631,10 @@ AnimationItem.prototype.pause = function (name) {
     if(this.isPaused === false){
         this.isPaused = true;
         this._idle = true;
-        this.trigger('_idle');
+        if (this.animation)
+            this.animation.pause();
+        else
+            this.trigger('_idle');
     }
 };
 

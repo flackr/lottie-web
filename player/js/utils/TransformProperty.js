@@ -1,5 +1,7 @@
 var TransformPropertyFactory = (function() {
 
+    var defaultVector = [0,0]
+
     function applyToMatrix(mat) {
         var _mdf = this._mdf;
         this.iterateDynamicProperties();
@@ -63,7 +65,7 @@ var TransformPropertyFactory = (function() {
                         v2 = this.p.getValueAtTime(this.p.keyframes[0].t / frameRate, 0);
                     } else if(this.p._caching.lastFrame+this.p.offsetTime >= this.p.keyframes[this.p.keyframes.length - 1].t) {
                         v1 = this.p.getValueAtTime((this.p.keyframes[this.p.keyframes.length - 1].t / frameRate), 0);
-                        v2 = this.p.getValueAtTime((this.p.keyframes[this.p.keyframes.length - 1].t - 0.01) / frameRate, 0);
+                        v2 = this.p.getValueAtTime((this.p.keyframes[this.p.keyframes.length - 1].t - 0.05) / frameRate, 0);
                     } else {
                         v1 = this.p.pv;
                         v2 = this.p.getValueAtTime((this.p._caching.lastFrame+this.p.offsetTime - 0.01) / frameRate, this.p.offsetTime);
@@ -87,6 +89,8 @@ var TransformPropertyFactory = (function() {
                         v2[0] = px.getValueAtTime((px._caching.lastFrame+px.offsetTime - 0.01) / frameRate,px.offsetTime);
                         v2[1] = py.getValueAtTime((py._caching.lastFrame+py.offsetTime - 0.01) / frameRate,py.offsetTime);
                     }
+                } else {
+                    v1 = v2 = defaultVector
                 }
                 this.v.rotate(-Math.atan2(v1[1] - v2[1], v1[0] - v2[0]));
             }

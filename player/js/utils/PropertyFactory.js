@@ -154,10 +154,10 @@ var PropertyFactory = (function(){
                     endValue = nextKeyData.s || keyData.e;
                     keyValue = keyData.h === 1 ? keyData.s[i] : keyData.s[i] + (endValue[i] - keyData.s[i]) * perc;
 
-                    if (len === 1) {
-                        newValue = keyValue;
-                    } else {
+                    if (this.propType === 'multidimensional') {
                         newValue[i] = keyValue;
+                    } else {
+                        newValue = keyValue;
                     }
                 }
             }
@@ -269,9 +269,9 @@ var PropertyFactory = (function(){
     }
 
     function processEffectsSequence() {
-        if(this.elem.globalData.frameId === this.frameId || !this.effectsSequence.length) {
+        if (this.elem.globalData.frameId === this.frameId || !this.effectsSequence.length) {
             return;
-        }        
+        }
         if(this.lock) {
             this.setVValue(this.pv);
             return;
@@ -370,9 +370,9 @@ var PropertyFactory = (function(){
         var i, len = data.k.length;
         var s, e,to,ti;
         for (i = 0; i < len - 1; i += 1) {
-            if (data.k[i].to && data.k[i].s && data.k[i].e) {
+            if (data.k[i].to && data.k[i].s && data.k[i + 1] && data.k[i + 1].s) {
                 s = data.k[i].s;
-                e = data.k[i].e;
+                e = data.k[i + 1].s;
                 to = data.k[i].to;
                 ti = data.k[i].ti;
                 if((s.length === 2 && !(s[0] === e[0] && s[1] === e[1]) && bez.pointOnLine2D(s[0],s[1],e[0],e[1],s[0] + to[0],s[1] + to[1]) && bez.pointOnLine2D(s[0],s[1],e[0],e[1],e[0] + ti[0],e[1] + ti[1])) || (s.length === 3 && !(s[0] === e[0] && s[1] === e[1] && s[2] === e[2]) && bez.pointOnLine3D(s[0],s[1],s[2],e[0],e[1],e[2],s[0] + to[0],s[1] + to[1],s[2] + to[2]) && bez.pointOnLine3D(s[0],s[1],s[2],e[0],e[1],e[2],e[0] + ti[0],e[1] + ti[1],e[2] + ti[2]))){

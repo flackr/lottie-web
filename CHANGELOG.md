@@ -1,3 +1,119 @@
+## V 5.7.1
+- REPORT: Improved animation report
+- FIX: Expressions separate dimensions
+- FIX: propertyGroup for expressions (Duik bones are supported)
+- FEATURE: supported Pucked and Bloat
+
+## V 5.7.0
+- FEATURE: Extension: reports for not supported features
+- FEATURE: Extension: baking keyframes for unsupported expressions
+- FEATURE: Extension: improved preview and added Skottie preview
+
+## V 5.6.10
+- FIX: default loop to true
+- FIX: removing sans-serif and monospace from font preloader to calculate correctly when font is loaded
+- FIX: improved image caching when preloading svg image tags
+- updated definitions
+
+## V 5.6.9
+- fix compression options
+- initialization improvement
+
+## V 5.6.8
+- not using non breaking spaces for text spaces
+- added support for exporting video layers (only export, players don't support them)
+- fix for path properties open without nodes
+
+## V 5.6.7
+- use original comp name as export name
+- added default filter values for banner template
+- added option to load local file as lottie player
+- initialSegment set before animation configuration
+
+## V 5.6.6
+- reading file extension correctly when copying original assets
+- fixed inlined json objects with carriage returns
+- added loop support for banners
+- exporting adjustment layers as null layers
+- added checkbox to select comp names as default
+- added filter size configuration and defaulting to 100%
+- Add missing animation event name definitions
+
+## V 5.6.5
+- added initialSegment property
+- fix for zip file without root folder
+- support for including json in banner html template
+- Export 'blur' text animator property
+
+## V 5.6.4
+- added support for using original images as assets
+- Improved log error fix
+- Fixed missing assets during export
+
+## V 5.6.3
+- Fix saving json files with special characters
+- Improved lottie import
+
+## V 5.6.2
+- Fix lottie importer gradient data without keyframes
+- Added hidden layers and hidden properties support for importer
+- Improved error messaging
+- Added assetsPath configuration for typescript
+- fixed mangled lottie declaration
+
+## V 5.6.1
+- Fix on the exporter for older AE versions when a new project didn't have a saved destination yet
+
+## V 5.6.0
+- Support new export mode: Rive
+- Support new export mode: Banner
+- Improved existing export modes
+- Improved image compression solution (now PNGs get well compressed as jpegs)
+- Support for importing Lottie Animations!
+- fixed build to prevent polluting global scope
+- text animator multiplier fix
+- fixes #1883 text offset
+- fixes #1878 supports id attribute for container
+
+## V 5.5.10
+- Improvement: validating if transform is linear to remove spatial interpolation
+- Fix: subtract mask transformed fix
+- Expressions: added posterize time support
+- Fix: incorrect easing function calculation in TextSelectorProperty
+- Fix: auto oriented properties with not keyframes
+- New: Implement a new Canvas renderer that can run on worker threads
+
+## V 5.5.9
+- Typing: added resize to type definitions
+- Feature: added image sequence support
+- FIX: clipping compositions in canvas renderer
+- FIX: added precision to auto orient
+
+## V 5.5.8
+- FIX: Setting assets data before loading extra compositions
+- FIX: Removed appending json at end of url
+- FIX: Camera separate position properties
+- Typing: Added animation event name to Lottie definitions
+- Feature: Add focusable renderer setting for SVGs
+- Feature: Added error handling for config and frame rendering
+
+## V 5.5.7
+- EXPRESSIONS: added support for propertyIndex on shapes
+- PERFORMANCE: big performance improvement on trim paths (and other modifiers) for paths that don't change over time
+- NEW: improved support for astral plane characters (like emojis)
+
+## V 5.5.6
+- FIX: surrogate pairs character support in animated text
+- FIX: new expressions supported
+
+## V 5.5.5
+- changed failed image bg to transparent
+- FIX: fix for old json expressions in key function
+
+## V 5.5.4
+- FIX: Updates to TypeScript definitions
+- FEATURE: support for new expressions
+
 ## V 5.5.3
 - FEATURE: Add SVG support for Gaussian Blur effects (thanks fmalita)
 - FEATURE: Add TypeScript type definitions (thanks D34THWINGS)

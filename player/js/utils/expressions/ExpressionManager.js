@@ -531,12 +531,8 @@ var ExpressionManager = (function(){
                 time: data.k[ind].t/elem.comp.globalData.frameRate,
                 value: []
             };
-            var arr;
-            if(ind === data.k.length - 1 && !data.k[ind].h){
-                arr = (data.k[ind].s || data.k[ind].s === 0) ? data.k[ind-1].s : data.k[ind].e;
-            }else{
-                arr = data.k[ind].s;
-            }
+            var arr = data.k[ind].hasOwnProperty('s') ? data.k[ind].s : data.k[ind - 1].e;
+
             len = arr.length;
             for(i=0;i<len;i+=1){
                 ob[i] = arr[i];
@@ -588,6 +584,11 @@ var ExpressionManager = (function(){
                 return value.substr(init, end)
             }
             return '';
+        }
+
+        function posterizeTime(framesPerSecond) {
+            time = framesPerSecond === 0 ? 0 : Math.floor(time * framesPerSecond) / framesPerSecond
+            value = valueAtTime(time)
         }
 
         var time, velocity, value, text, textIndex, textTotal, selectorValue;
@@ -648,7 +649,6 @@ var ExpressionManager = (function(){
             }
             expression_function();
             this.frameExpressionId = elem.globalData.frameId;
-
 
             //TODO: Check if it's possible to return on ShapeInterface the .v value
             if (scoped_bm_rt.propType === "shape") {

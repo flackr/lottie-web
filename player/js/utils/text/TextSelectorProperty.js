@@ -33,69 +33,82 @@ var TextSelectorProp = (function(){
                 this.getValue();
             }
             //var easer = bez.getEasingCurve(this.ne.v/100,0,1-this.xe.v/100,1);
-            var easer = BezierFactory.getBezierEasing(this.ne.v/100,0,1-this.xe.v/100,1).get;
+            var x1 = 0;
+            var y1 = 0;
+            var x2 = 1;
+            var y2 = 1;
+            if(this.ne.v > 0) {
+                x1 = this.ne.v / 100.0;
+            }
+            else {
+                y1 = -this.ne.v / 100.0;
+            }
+            if(this.xe.v > 0) {
+                x2 = 1.0 - this.xe.v / 100.0;
+            }
+            else {
+                y2 = 1.0 + this.xe.v / 100.0;
+            }
+            var easer = BezierFactory.getBezierEasing(x1, y1, x2, y2).get;
+
             var mult = 0;
             var s = this.finalS;
             var e = this.finalE;
             var type = this.data.sh;
-            if(type == 2){
-                if(e === s){
+            if (type === 2){
+                if (e === s) {
                     mult = ind >= e ? 1 : 0;
-                }else{
-                    mult = max(0,min(0.5/(e-s) + (ind-s)/(e-s),1));
+                } else {
+                    mult = max(0, min(0.5 / (e - s) + (ind - s) / (e - s), 1));
                 }
                 mult = easer(mult);
-            }else if(type == 3){
-                if(e === s){
+            } else if(type === 3) {
+                if (e === s) {
                     mult = ind >= e ? 0 : 1;
                 }else{
-                    mult = 1 - max(0,min(0.5/(e-s) + (ind-s)/(e-s),1));
+                    mult = 1 - max(0, min(0.5 / (e - s) + (ind - s) / (e - s),1));
                 }
 
                 mult = easer(mult);
-            }else if(type == 4){
-                if(e === s){
+            } else if (type === 4) {
+                if (e === s) {
                     mult = 0;
-                }else{
-                    mult = max(0,min(0.5/(e-s) + (ind-s)/(e-s),1));
-                    if(mult<0.5){
+                } else {
+                    mult = max(0, min(0.5 / (e - s) + (ind - s) / (e - s), 1));
+                    if (mult < 0.5) {
                         mult *= 2;
-                    }else{
-                        mult = 1 - 2*(mult-0.5);
+                    } else {
+                        mult = 1 - 2 * (mult - 0.5);
                     }
                 }
                 mult = easer(mult);
-            }else if(type == 5){
-                if(e === s){
+            } else if (type === 5) {
+                if (e === s){
                     mult = 0;
-                }else{
+                } else {
                     var tot = e - s;
                     /*ind += 0.5;
                     mult = -4/(tot*tot)*(ind*ind)+(4/tot)*ind;*/
-                    ind = min(max(0,ind+0.5-s),e-s);
+                    ind = min(max(0, ind + 0.5 - s), e - s);
                     var x = -tot/2+ind;
                     var a = tot/2;
-                    mult = Math.sqrt(1 - (x*x)/(a*a));
+                    mult = Math.sqrt(1 - (x * x) / (a * a));
                 }
                 mult = easer(mult);
-            }else if(type == 6){
-                if(e === s){
+            } else if (type === 6) {
+                if (e === s){
                     mult = 0;
-                }else{
-                    ind = min(max(0,ind+0.5-s),e-s);
-                    mult = (1+(Math.cos((Math.PI+Math.PI*2*(ind)/(e-s)))))/2;
-                    /*
-                     ind = Math.min(Math.max(s,ind),e-1);
-                     mult = (1+(Math.cos((Math.PI+Math.PI*2*(ind-s)/(e-1-s)))))/2;
-                     mult = Math.max(mult,(1/(e-1-s))/(e-1-s));*/
+                } else {
+                    ind = min(max(0, ind + 0.5 - s), e - s);
+                    mult = (1 + (Math.cos((Math.PI + Math.PI * 2 * (ind) / (e - s))))) / 2;
                 }
                 mult = easer(mult);
-            }else {
-                if(ind >= floor(s)){
-                    if(ind-s < 0){
-                        mult = 1 - (s - ind);
-                    }else{
-                        mult = max(0,min(e-ind,1));
+            } else {
+                if (ind >= floor(s)) {
+                    if (ind - s < 0) {
+                        mult = max(0, min(min(e, 1) - (s - ind), 1));
+                    } else {
+                        mult = max(0, min(e - ind, 1));
                     }
                 }
                 mult = easer(mult);

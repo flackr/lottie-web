@@ -5,7 +5,7 @@ const UglifyJS = require("uglify-js");
 const rootFolder = 'player/';
 const bm_version = '5.7.1';
 const buildReducedVersion = process.argv[2] === 'reduced'
-const defaultBuilds = ['full','svg_light','svg','canvas','html', 'canvas_light', 'html_light', 'canvas_worker']
+const defaultBuilds = ['full','svg_light','svg','canvas','html', 'canvas_light', 'html_light', 'canvas_worker', 'paint_worklet']
 
 const scripts = [
 	{
@@ -223,6 +223,10 @@ const scripts = [
 	{
 		src: 'js/renderers/HybridRenderer.js',
 		builds: ['full','html','html_light']
+	},
+	{
+		src: 'js/renderers/PaintWorkletRenderer.js',
+		builds: defaultBuilds
 	},
 	{
 		src: 'js/mask.js',
@@ -574,7 +578,6 @@ function parseHTML(html) {
 function getScripts($) {
 	return new Promise((resolve, reject)=> {
 		try {
-			const defaultBuilds = ['full','svg_light','svg','canvas','html', 'canvas_light', 'html_light', 'paintworklet']
 			const scriptNodes = []
 			let shouldAddToScripts = false;
 			$("head").contents().each((index, node) => {
@@ -625,8 +628,17 @@ function concatScripts(scripts, build) {
 function wrapScriptWithModule(code, build) {
 	return new Promise((resolve, reject)=>{
 		try {
-			// Wrapping with module
-			let moduleFileName = (build =='canvas_worker') ? 'module_worker' : 'module';
+			let moduleFileName
+			switch(build) {
+				case 'canvas_worker':
+					moduleFileName = 'module_worker';
+					break;
+				case 'paintworklet':
+					moduleFileName = 'module_es';
+					break;
+				default:
+					moduleFileName = 'module';
+			}
 			let wrappedCode = fs.readFileSync(`${rootFolder}js/${moduleFileName}.js`, "utf8");
 			wrappedCode = wrappedCode.replace('/*<%= contents %>*/',code);
 			wrappedCode = wrappedCode.replace('[[BM_VERSION]]',bm_version);
@@ -790,8 +802,7 @@ function buildVersions(scripts) {
 		{ // TODO: Upgrade uglifier to support export and let and add minified build.
 			fileName: 'lottie_paintworklet.js',
 			build: 'paintworklet',
-			process: noop,
-			mode: 'es',
+			process: noop
 		}];
 
 		if (buildReducedVersion) {
